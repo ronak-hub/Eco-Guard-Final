@@ -1,5 +1,5 @@
 {
-  "name": "EcoGuard-AI-Powered-Local-Climate-Sentinel",
+  "name": "EcoGuard AI",
   "description": "An advanced AI-powered local climate sentinel providing real-time environmental risk assessments, climate data visualization, and personalized resilience recommendations.",
   "requestFramePermissions": [
     "camera",

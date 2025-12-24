@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { SYSTEM_PROMPT, CLIMATE_VOICE_CONFIG } from '../constants';
 
-// Manual implementation of audio encoding/decoding as per requirements.
+// Utility functions for audio encoding/decoding as per Gemini requirements
 function encode(bytes: Uint8Array) {
   let binary = '';
   const len = bytes.byteLength;
@@ -71,8 +71,7 @@ const LiveSentinel: React.FC = () => {
   const startSession = async () => {
     try {
       setStatus('Connecting...');
-      // Initialize right before connecting to use the latest API key.
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       
       const inCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       const outCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -106,7 +105,6 @@ const LiveSentinel: React.FC = () => {
                 data: encode(new Uint8Array(int16.buffer)),
                 mimeType: 'audio/pcm;rate=16000',
               };
-              // Always use sessionPromise to avoid stale closures.
               sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
             };
             source.connect(scriptProcessor);
@@ -123,7 +121,6 @@ const LiveSentinel: React.FC = () => {
             const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
             if (base64Audio) {
               const audioCtx = outAudioContextRef.current!;
-              // Gapless playback scheduling using nextStartTime variable.
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, audioCtx.currentTime);
               const buffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
               const source = audioCtx.createBufferSource();
@@ -141,7 +138,7 @@ const LiveSentinel: React.FC = () => {
               nextStartTimeRef.current = 0;
             }
           },
-          onerror: (e: any) => {
+          onerror: (e) => {
             console.error('Live Error:', e);
             setStatus('Error occurred');
             stopSession();
@@ -154,15 +151,8 @@ const LiveSentinel: React.FC = () => {
       });
 
       sessionRef.current = await sessionPromise;
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      const errorMessage = err?.message || String(err);
-      if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("404")) {
-        const aistudio = (window as any).aistudio;
-        if (aistudio?.openSelectKey) {
-          await aistudio.openSelectKey();
-        }
-      }
       setStatus('Failed to connect');
     }
   };
